@@ -18,9 +18,10 @@ Base64 does not provide security. It is a reversible encoding format, not a cryp
 * **Front-end Driven:** No backend system commands are used; the application is entirely front-end driven for maximum portability and speed.
 
 ## Platform Support
-
-* **Linux:** Primary development and testing environment LMDE (Linux Mint Debian Edition).
+* **Framework:** Built with **Wails v2**. This represents a transition point in my workflow as I move toward **Wails v3-Alpha**. I maintain both environments locally to ensure legacy support while adopting new standards.
+* **Linux:** Developed and tested on **LMDE (Linux Mint Debian Edition)**. This is the target environment for full feature parity.
 * **macOS / Windows:** Compatible via the Wails compiler (formal testing pending).
+*Special thanks to Google's Gemini for assistance in refining the Wails build configurations.*
 
 ## Current Status
 
