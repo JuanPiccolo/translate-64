@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Translate 64</title>
+<!-- Style for Main -->
+<style>
+textarea {
+    resize: none; /* User can only pull it down, not wider */
+}
+
+#PageWideDiv {
+    text-align: center;
+}
+</style>
+
+<script>
+//#region <!-- Script for Main -->
+function JAlert(Array)
+	{
+	alert(JSON.stringify(Array));
+	}
+
+// buildObjString(EnvObjs, "EnvObj")
+function buildObjString(ObjArrName, NameOfClass) 
+	{
+    let out = "";
+
+    for (let i = 0; i < ObjArrName.length; i++) 
+    	{
+        const o = ObjArrName[i];
+
+        // Pull property names dynamically in order found
+        const keys = Object.keys(o);
+
+        const args = keys.map(k => {
+            const val = o[k];
+
+            // Handle strings
+            if (typeof val === "string") {
+                return `"${val}"`;
+            }
+
+            // Handle arrays
+            if (Array.isArray(val)) {
+                return JSON.stringify(val);
+            }
+
+            // Handle everything else (numbers, bools, etc)
+            return val;
+        }).join(", ");
+
+        out += `${NameOfClass}s.push(new ${NameOfClass}(${args}));
+`;
+    	}
+
+    return out;
+	}
+
+function SelectBoxMaker(HTMLID, arrToLoop)
+    {
+    let stringOfDropDown = `<select id="${HTMLID}">`;
+    for (let i=0; i < arrToLoop.length; i++)
+        {
+        let item = arrToLoop[i];
+        stringOfDropDown += `<option>${item}</option>`;
+        }
+    stringOfDropDown += `</select>`;
+    return stringOfDropDown;
+    }
+
+function getFormattedDateTime() 
+    {
+    const now = new Date();
+
+    // Helper to add a leading zero
+    const pad = (num) => String(num).padStart(2, '0');
+
+    // --- Date Components ---
+    const year = now.getFullYear();
+    // Month is 0-indexed, so add 1
+    const month = now.getMonth() + 1;
+	const monthInDoubles = String(month).padStart(2, '0');
+	let day = now.getDate();
+	const dateInDoubles = String(day).padStart(2, '0');
+
+    // --- Time Components (12-hour format) ---
+    let hours = now.getHours();
+    const minutes = pad(now.getMinutes());
+    const seconds = pad(now.getSeconds());
+
+    // Convert to 12-hour format and determine am/pm
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    // 0 becomes 12 (midnight), 13-23 become 1-11
+    hours = hours % 12;
+    hours = hours ? hours : 12; // The hour '0' should be '12'
+    const displayHour = pad(hours);
+
+    // --- Combine into the final format ---
+    return `${year}-${monthInDoubles}-${dateInDoubles}-${displayHour}-${minutes}-${seconds}-${ampm}`;
+    }
+
+function ElementGrab(NameofHTMLID, TypeOfGrab)
+    {
+    //alert(NameofHTMLID);
+    //alert(TypeOfGrab);
+    let stringGrab = `document.getElementById('${NameofHTMLID}').${TypeOfGrab}`;
+    //alert(stringGrab);
+    return eval(stringGrab);
+    }
+
+async function CallPy(functName, ArgsInc = []) {
+// Call the Python API exposed via webview
+// `window.pywebview.api` is the bridge object
+if (window.pywebview && window.pywebview.api && typeof window.pywebview.api[functName] === "function") 
+    {
+    return window.pywebview.api[functName](...ArgsInc)
+    .then(result => {
+        console.log(`Result from ${functName}:`, result);
+        return result; // in case caller wants it
+    })
+    .catch(err => {
+        console.error(`Error calling ${functName}:`, err);
+    });
+    } 
+else 	
+    {
+    console.error(`Python function "${functName}" not found.`);
+    }
+}
+
+function cleanString(str) {
+    // s matches any whitespace (spaces, tabs, line breaks)
+    // g is the "global" flag to catch every instance
+    return str.replace(/s+/g, '').toLowerCase();
+}
+//#endregion
+
+function DecodeIt()
+{
+    let encoded = document.getElementById("EncodedHTMLID").value.trim();
+    let type = document.getElementById("Base64HTMLID").value;
+    if (encoded === "") { alert("There is nothing to\nDecrypt"); return;}
+    let processed = encoded;
+
+    // MIME Base64: remove line breaks / whitespace
+    if (type === "MIME Base64 (RFC 2045)")
+    {
+        processed = processed.replace(/\s+/g, '');
+    }
+
+    // URL-safe Base64: convert back to standard alphabet
+    if (type === "URL-safe Base64")
+    {
+        processed = processed.replace(/-/g, '+').replace(/_/g, '/');
+    }
+
+    // Unpadded Base64: restore padding if missing
+    if (type === "Unpadded Base64")
+    {
+        while (processed.length % 4 !== 0)
+        {
+            processed += "=";
+        }
+    }
+
+    try
+    {
+        let decoded = atob(processed);
+        document.getElementById("DecodedHTMLID").value = decoded;
+    }
+    catch (err)
+    {
+        document.getElementById("DecodedHTMLID").value = "Invalid Base64 input.";
+    }
+}
+
+function EncodeIt()
+{
+    let plainText = document.getElementById("DecodedHTMLID").value;
+    let type = document.getElementById("Base64HTMLID").value;
+    if (plainText === "") {alert("There is nothing to Encrypt"); return;}
+    try
+    {
+        // Standard Base64 encoding using btoa
+        let encoded = btoa(plainText);
+
+        // URL-safe Base64: swap standard alphabet to URL-safe characters
+        if (type === "URL-safe Base64")
+        {
+            encoded = encoded.replace(/\+/g, '-').replace(/\//g, '_');
+        }
+
+        // Unpadded Base64: remove any trailing '=' characters
+        if (type === "Unpadded Base64")
+        {
+            encoded = encoded.replace(/=+$/, '');
+        }
+
+        // MIME Base64: add line breaks every 76 characters
+        if (type === "MIME Base64 (RFC 2045)")
+        {
+            encoded = encoded.match(/.{1,76}/g).join('\r\n');
+        }
+
+        document.getElementById("EncodedHTMLID").value = encoded;
+    }
+    catch (err)
+    {
+        // btoa fails if the string contains characters outside the Latin1 range
+        document.getElementById("EncodedHTMLID").value = "Error: Input contains invalid characters for standard Base64.";
+    }
+}
+
+</script>
+</head>
+<body>
+    <div id="PageWideDiv">
+        <table style="display: inline;">
+            <tr>
+                <td style="text-align: center; font-size: 32;">Translate 64</td>
+            </tr>
+            <tr>
+                <td style="text-align: center; font-size: 20;">Base 64 IS NOT ENCRYPTION</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;"><img src="/assets/Translate64-156.d1118192.png"></td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">
+                    Type of Encryption:
+                    <select id="Base64HTMLID">
+                        <option>Standard Base64 (RFC 4648)</option>
+                        <option>URL-safe Base64</option>
+                        <option>MIME Base64 (RFC 2045)</option>
+                        <option>Unpadded Base64</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <table>
+                        <tr>
+                            <td>
+                                Base 64:
+                            </td>
+                            <td>
+                                <textarea id="EncodedHTMLID" rows="15" cols="75"></textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Normal Text:
+                            </td>
+                            <td>
+                                <textarea id="DecodedHTMLID" rows="15" cols="75"></textarea>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align: center;" >
+                    <button style="font-size: 32px;" onclick="DecodeIt()">Decode It</button>
+                    <button style="font-size: 32px;" onclick="EncodeIt()">Encode It</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
